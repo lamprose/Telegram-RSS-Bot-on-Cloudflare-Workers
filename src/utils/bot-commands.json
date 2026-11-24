@@ -1,0 +1,24 @@
+{
+  "zh": [
+    { "command": "start", "description": "开始使用，查看帮助信息" },
+    { "command": "help", "description": "显示帮助信息" },
+    { "command": "sub", "description": "订阅 RSS 源，需附上 URL" },
+    { "command": "unsub", "description": "取消订阅（可传 URL 或名字，不带参数则列表点选）" },
+    { "command": "list", "description": "列出所有已订阅的 RSS 源" },
+    { "command": "export", "description": "导出订阅为 OPML 文件" },
+    { "command": "import", "description": "导入 OPML 文件" },
+    { "command": "lang", "description": "切换语言（不带参数则弹出选择）" },
+    { "command": "cancel", "description": "取消当前操作" }
+  ],
+  "en": [
+    { "command": "start", "description": "Start the bot and show help" },
+    { "command": "help", "description": "Show help message" },
+    { "command": "sub", "description": "Subscribe to an RSS feed (requires URL)" },
+    { "command": "unsub", "description": "Unsubscribe (URL or name; no argument lists subscriptions)" },
+    { "command": "list", "description": "List all subscribed RSS feeds" },
+    { "command": "export", "description": "Export subscriptions as an OPML file" },
+    { "command": "import", "description": "Import an OPML file" },
+    { "command": "lang", "description": "Switch language (no argument opens a picker)" },
+    { "command": "cancel", "description": "Cancel the current operation" }
+  ]
+}

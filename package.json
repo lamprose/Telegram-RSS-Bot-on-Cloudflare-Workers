@@ -2,7 +2,8 @@
   "name": "telegram-rss-bot-on-cloudflare-workers",
   "version": "0.0.1",
   "scripts": {
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy && node scripts/set-commands.mjs",
+    "commands": "node scripts/set-commands.mjs",
     "token": "wrangler secret put TELEGRAM_BOT_TOKEN",
     "dev": "wrangler dev",
     "test": "vitest",

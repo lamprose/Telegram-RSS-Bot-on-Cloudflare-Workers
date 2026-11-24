@@ -8,11 +8,14 @@ demo: <https://t.me/atri_rss_bot>
 
 ## 命令列表
 
-- `/sub <rss_url>` - 订阅 RSS
-- `/unsub <rss_url>` - 取消订阅 RSS
-- `/list` - 列出所有订阅的 RSS
-- `/start` - 查看帮助信息
-- `/lang` - 切换语言 (Switch language)
+- `/sub <rss_url> [名字]` - 订阅 RSS 源，名字可缺省
+- `/unsub [URL 或名字]` - 取消订阅；不带参数则列出订阅供点选
+- `/list` - 列出订阅；点名字可重命名或退订
+- `/export` - 导出订阅为 OPML 文件
+- `/import` - 导入 OPML 文件（把文件发给 bot 即可）
+- `/lang [zh|en]` - 切换语言；不带参数则弹出选择
+- `/cancel` - 取消当前操作
+- `/start` / `/help` - 查看帮助信息
 
 ## 部署说明
 
@@ -37,3 +40,12 @@ demo: <https://t.me/atri_rss_bot>
    ```
 5. 访问 `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=<YOUR_WORKER_URL>` 设置 webhook。`YOUR_WORKER_URL` 可以去 Cloudflare Dashboard 的 Workers 页面查看。
 6. 如果部署完毕，运行时出现问题，可以 `wrangler tail telegram_rss_bot` 查看日志。
+
+### 升级已有部署
+
+不要跑 `schema.sql`，按顺序执行 `migrations/` 下的脚本，然后重新部署：
+
+```sh
+wrangler d1 execute telegram_rss_bot --file=./migrations/001_add_name_and_pending.sql --remote
+wrangler deploy
+```

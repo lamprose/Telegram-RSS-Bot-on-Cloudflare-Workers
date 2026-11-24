@@ -8,11 +8,14 @@ demo: <https://t.me/atri_rss_bot>
 
 ## Command List
 
-- `/sub <rss_url>` - Subscribe to RSS feed
-- `/unsub <rss_url>` - Unsubscribe from RSS feed
-- `/list` - List all subscribed RSS feeds
-- `/start` - View help information
-- `/lang` - Switch language (en / zh)
+- `/sub <rss_url> [name]` - Subscribe to an RSS feed, name is optional
+- `/unsub [url or name]` - Unsubscribe; without an argument it lists your feeds to pick from
+- `/list` - List subscriptions; tap a name to rename or unsubscribe
+- `/export` - Export subscriptions as an OPML file
+- `/import` - Import an OPML file (just send the file to the bot)
+- `/lang [zh|en]` - Switch language; without an argument it opens a picker
+- `/cancel` - Cancel the current operation
+- `/start` / `/help` - View help information
 
 ## Deployment Guide
 
@@ -37,3 +40,12 @@ demo: <https://t.me/atri_rss_bot>
    ```
 5. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=<YOUR_WORKER_URL>` to set up the webhook. You can find `YOUR_WORKER_URL` in the Workers page of Cloudflare Dashboard.
 6. If you encounter any issues after deployment, you can check the logs using `wrangler tail telegram_rss_bot`.
+
+### Upgrading an existing deployment
+
+Run the SQL scripts in `migrations/` in order instead of `schema.sql`, then redeploy:
+
+```sh
+wrangler d1 execute telegram_rss_bot --file=./migrations/001_add_name_and_pending.sql --remote
+wrangler deploy
+```

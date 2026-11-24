@@ -1,13 +1,10 @@
 import Parser from "rss-parser";
-import { Language, getMessage } from "./i18n";
 
 export interface FeedItem {
   title: string;
   link: string;
   guid: string;
   pubDate?: string;
-  // 不需要 content
-  // content?: string
 }
 
 interface CacheEntry {
@@ -21,7 +18,7 @@ export class RSSUtil {
   private cache: Map<string, CacheEntry>;
   private readonly CACHE_TTL: number;
 
-  constructor(private readonly updateInterval: number) {
+  constructor(updateInterval: number) {
     this.CACHE_TTL = updateInterval * 60 * 1000;
     this.parser = new Parser({
       timeout: 5000,
@@ -52,28 +49,21 @@ export class RSSUtil {
       // Failed to fetch RSS feed: [unenv] https.get is not implemented yet!
       const feed = await this.parser.parseString(xml);
       const items = feed.items.map((item) => ({
-        title: item.title || "Untitled",
+        title: item.title?.trim() || "Untitled",
         link: item.link || url,
         guid: item.guid || item.link || "",
         pubDate: item.pubDate,
       }));
 
-      // 更新缓存
-      this.cache.set(url, {
-        items,
-        feedTitle: feed.title?.trim() || url,
-        timestamp: now,
-      });
+      const feedTitle = feed.title?.trim() || url;
 
-      return { items, feedTitle: feed.title?.trim() || url };
+      // 更新缓存
+      this.cache.set(url, { items, feedTitle, timestamp: now });
+
+      return { items, feedTitle };
     } catch (error: unknown) {
       console.error(`Error fetching RSS feed from ${url}:`, error);
       throw error;
     }
-  }
-
-  formatMessage(item: FeedItem, feedTitle?: string, lang: Language = "zh"): string {
-    const prefix = getMessage(lang, "article_prefix");
-    return feedTitle ? `${prefix} ${feedTitle}: [${item.title}](${item.link})` : `${prefix} [${item.title}](${item.link})`;
   }
 }

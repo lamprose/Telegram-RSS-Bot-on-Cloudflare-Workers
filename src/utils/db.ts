@@ -5,9 +5,23 @@ export interface RSSSubscription {
   user_id: number;
   feed_url: string;
   feed_title: string;
+  /** 用户自定义的订阅名；为空时展示 feed_title */
+  name?: string | null;
   last_fetch_time?: number;
   last_item_guid?: string;
   created_at: number;
+}
+
+export interface PendingAction {
+  user_id: number;
+  action: string;
+  sub_id?: number | null;
+  created_at: number;
+}
+
+/** 订阅在界面上展示的名字 */
+export function subscriptionName(sub: RSSSubscription): string {
+  return sub.name?.trim() || sub.feed_title;
 }
 
 export class Database {
@@ -79,21 +93,53 @@ export class Database {
   }
 
   // RSS订阅相关操作
-  async addSubscription(userId: number, feedUrl: string, feedTitle: string): Promise<void> {
-    const now = Date.now();
+  /**
+   * 新增订阅；同一用户重复订阅同一个源时更新名字，不再撞 UNIQUE 约束报错。
+   * @returns true 表示是新建，false 表示是覆盖已有订阅
+   */
+  async addSubscription(userId: number, feedUrl: string, feedTitle: string, name?: string): Promise<boolean> {
+    const existing = await this.db
+      .prepare("SELECT id FROM rss_subscriptions WHERE user_id = ? AND feed_url = ?")
+      .bind(userId, feedUrl)
+      .first<{ id: number }>();
+
     await this.db
-      .prepare("INSERT INTO rss_subscriptions (user_id, feed_url, feed_title, created_at) VALUES (?, ?, ?, ?)")
-      .bind(userId, feedUrl, feedTitle, now)
+      .prepare(
+        `INSERT INTO rss_subscriptions (user_id, feed_url, feed_title, name, created_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(user_id, feed_url) DO UPDATE SET
+           feed_title = excluded.feed_title,
+           name = excluded.name`,
+      )
+      .bind(userId, feedUrl, feedTitle, name?.trim() || feedTitle, Date.now())
       .run();
+
+    return !existing;
   }
 
   async removeSubscription(userId: number, feedUrl: string): Promise<void> {
     await this.db.prepare("DELETE FROM rss_subscriptions WHERE user_id = ? AND feed_url = ?").bind(userId, feedUrl).run();
   }
 
+  async removeSubscriptionById(userId: number, id: number): Promise<void> {
+    await this.db.prepare("DELETE FROM rss_subscriptions WHERE user_id = ? AND id = ?").bind(userId, id).run();
+  }
+
+  /** 按 id 取订阅，并强制限定归属，避免回调查到别人的数据 */
+  async getSubscription(userId: number, id: number): Promise<RSSSubscription | null> {
+    return await this.db
+      .prepare("SELECT * FROM rss_subscriptions WHERE user_id = ? AND id = ?")
+      .bind(userId, id)
+      .first<RSSSubscription>();
+  }
+
+  async updateSubscriptionName(userId: number, id: number, name: string): Promise<void> {
+    await this.db.prepare("UPDATE rss_subscriptions SET name = ? WHERE user_id = ? AND id = ?").bind(name, userId, id).run();
+  }
+
   async listSubscriptions(userId: number): Promise<RSSSubscription[]> {
     return await this.db
-      .prepare("SELECT * FROM rss_subscriptions WHERE user_id = ?")
+      .prepare("SELECT * FROM rss_subscriptions WHERE user_id = ? ORDER BY id")
       .bind(userId)
       .all<RSSSubscription>()
       .then((result) => result.results);
@@ -113,5 +159,28 @@ export class Database {
       .bind(cutoffTime)
       .all<RSSSubscription>()
       .then((result) => result.results);
+  }
+
+  // 待处理动作（目前只有重命名），每个用户最多一条
+  async setPendingAction(userId: number, action: string, subId: number): Promise<void> {
+    await this.db
+      .prepare(
+        `INSERT INTO pending_actions (user_id, action, sub_id, created_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           action = excluded.action,
+           sub_id = excluded.sub_id,
+           created_at = excluded.created_at`,
+      )
+      .bind(userId, action, subId, Date.now())
+      .run();
+  }
+
+  async getPendingAction(userId: number): Promise<PendingAction | null> {
+    return await this.db.prepare("SELECT * FROM pending_actions WHERE user_id = ?").bind(userId).first<PendingAction>();
+  }
+
+  async clearPendingAction(userId: number): Promise<void> {
+    await this.db.prepare("DELETE FROM pending_actions WHERE user_id = ?").bind(userId).run();
   }
 }
